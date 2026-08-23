@@ -1,0 +1,32 @@
+# ============================================================
+# Config for train.py
+# Keys here must match train.py's argparse argument names exactly
+# (flat file - train.py's load_config() maps each key straight to
+# the matching --flag, e.g. train_images -> --train_images).
+# ============================================================
+
+# Assumes Roboflow's default COCO export naming inside each split
+# folder: "_annotations.coco.json". If yours is named differently,
+# just change train_ann / val_ann below to match.
+train_images: dataset/train
+train_ann: dataset/train/_annotations.coco.json
+val_images: dataset/valid
+val_ann: dataset/valid/_annotations.coco.json
+
+# dataset/test is not used by train.py (it only trains on train/val).
+# Use it later for evaluation, e.g.:
+#   python detect_weeds.py --weights checkpoints/best.pth --images dataset/test --export_coco
+#   python compute_map.py --gt dataset/test/_annotations.coco.json --pred results/predictions.json
+
+epochs: 50
+batch_size: 2          # small on purpose - only 40 images total in the dataset
+lr: 0.005
+momentum: 0.9
+weight_decay: 0.0005
+lr_step_size: 15
+lr_gamma: 0.1
+num_workers: 2
+
+checkpoint_dir: checkpoints
+log_path: logs/metrics.json
+seed: 42
