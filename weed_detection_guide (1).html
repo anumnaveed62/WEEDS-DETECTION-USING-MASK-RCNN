@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Weed Detection Mask R-CNN — Setup & Training Guide</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #171a21;
+    --border: #2a2f3a;
+    --text: #e6e8ec;
+    --muted: #9aa3b2;
+    --accent: #4fd1c5;
+    --warn-bg: #2b1f10;
+    --warn-border: #7a5a1e;
+    --code-bg: #1c2028;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 48px 24px 96px; }
+  h1 { font-size: 1.9rem; margin-bottom: 4px; }
+  .subtitle { color: var(--muted); margin-top: 0; margin-bottom: 40px; }
+  h2 {
+    font-size: 1.3rem;
+    margin-top: 56px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  h3 { font-size: 1.05rem; margin-top: 28px; color: var(--accent); }
+  nav {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin-bottom: 40px;
+  }
+  nav strong { display: block; margin-bottom: 8px; }
+  nav ol { margin: 0; padding-left: 20px; }
+  nav a { color: var(--accent); text-decoration: none; }
+  nav a:hover { text-decoration: underline; }
+  .step {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin: 14px 0;
+  }
+  .step-title { font-weight: 600; margin-bottom: 6px; }
+  .step-title .num {
+    display: inline-block;
+    width: 22px; height: 22px;
+    background: var(--accent);
+    color: #0f1115;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 22px;
+    font-size: 0.8rem;
+    margin-right: 8px;
+  }
+  code, pre {
+    font-family: "SF Mono", Consolas, Menlo, monospace;
+    font-size: 0.88rem;
+  }
+  code {
+    background: var(--code-bg);
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    margin: 10px 0;
+  }
+  pre code { background: none; padding: 0; }
+  .warn {
+    background: var(--warn-bg);
+    border: 1px solid var(--warn-border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin: 14px 0;
+  }
+  .warn strong { color: #e0b453; }
+  table { border-collapse: collapse; width: 100%; margin: 12px 0; }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 8px 12px;
+    text-align: left;
+    font-size: 0.9rem;
+  }
+  th { background: var(--panel); }
+  .muted { color: var(--muted); font-size: 0.9rem; }
+  footer { margin-top: 60px; color: var(--muted); font-size: 0.85rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Weed Detection Mask R-CNN</h1>
+  <p class="subtitle">Setup, training, evaluation, and automatic detection — full guide</p>
+
+  <nav>
+    <strong>Contents</strong>
+    <ol>
+      <li><a href="#files">Project files</a></li>
+      <li><a href="#env">Environment setup</a></li>
+      <li><a href="#troubleshooting">Common setup errors</a></li>
+      <li><a href="#training">Training</a></li>
+      <li><a href="#evaluation">Evaluation</a></li>
+      <li><a href="#auto">Automatic detection (no commands)</a></li>
+    </ol>
+  </nav>
+
+  <h2 id="files">1. Project files</h2>
+  <table>
+    <tr><th>File</th><th>Purpose</th></tr>
+    <tr><td><code>train.py</code></td><td>Trains Mask R-CNN on your COCO-format dataset</td></tr>
+    <tr><td><code>data.yaml</code></td><td>Dataset paths + hyperparameters, read by <code>train.py --config</code></td></tr>
+    <tr><td><code>detect_weeds.py</code></td><td>Runs the trained model on a folder of images, saves annotated results</td></tr>
+    <tr><td><code>auto_detect.py</code> / <code>run_auto_detect.bat</code></td><td>Watches a folder and detects automatically — no commands needed after launch</td></tr>
+    <tr><td><code>plot_training_curves.py</code></td><td>Plots loss curves from <code>logs/metrics.json</code></td></tr>
+    <tr><td><code>compute_map.py</code></td><td>Computes mAP against ground-truth test annotations</td></tr>
+    <tr><td><code>compute_iou.py</code></td><td>Box/mask IoU statistics on matched detections</td></tr>
+    <tr><td><code>error_analysis.py</code></td><td>Confusion matrix + worst false positives/negatives</td></tr>
+    <tr><td><code>benchmark_fps.py</code></td><td>Inference speed benchmark</td></tr>
+  </table>
+
+  <h2 id="env">2. Environment setup</h2>
+
+  <div class="step">
+    <div class="step-title"><span class="num">1</span>Create/activate the virtual environment</div>
+    From your project folder in PowerShell:
+    <pre><code>python -m venv venv
+venv\Scripts\activate</code></pre>
+    <p class="muted">If activation is blocked by execution policy, see the Troubleshooting section below.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-title"><span class="num">2</span>Install dependencies</div>
+    <pre><code>venv\Scripts\python.exe -m pip install -r requirements.txt</code></pre>
+    <p class="muted">Installs torch, torchvision, pycocotools, numpy, pandas, matplotlib, pillow, pyyaml. The torch download is large (100+ MB) — this can take a few minutes.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-title"><span class="num">3</span>Point VS Code at the same environment</div>
+    <code>Ctrl+Shift+P</code> → "Python: Select Interpreter" → choose the <code>venv\Scripts\python.exe</code> inside your project folder — the same one you just installed packages into. (Or click the interpreter name in the bottom-right status bar for the same picker.)
+  </div>
+
+  <div class="warn">
+    <strong>Only use one venv per project.</strong> Having two different virtual environments (e.g. one in your project folder and one elsewhere) is a common source of confusing "module not found" errors — packages installed in one aren't visible from the other. Pick one, install everything there, and point both the terminal and VS Code's interpreter at it.
+  </div>
+
+  <h2 id="troubleshooting">3. Common setup errors</h2>
+
+  <h3>PowerShell: "running scripts is disabled on this system"</h3>
+  <p>PowerShell blocks <code>.ps1</code> activation scripts by default. Fixes, easiest first:</p>
+  <pre><code># Run the activate script once, bypassing policy just for this command:
+powershell -ExecutionPolicy Bypass -File venv\Scripts\Activate.ps1
+
+# OR permanently allow local scripts for your user account:
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+
+# OR skip activation entirely — call the venv's python directly:
+venv\Scripts\python.exe train.py --config data.yaml</code></pre>
+
+  <h3>ModuleNotFoundError: No module named 'numpy' (or torch, etc.)</h3>
+  <p>This means whichever Python is currently running doesn't have the package installed — usually because VS Code's debugger is using a different interpreter than the one you ran <code>pip install</code> in. Check the interpreter shown in VS Code's bottom-right status bar, and either install into that same environment or switch the interpreter to match the one that has the packages:</p>
+  <pre><code>venv\Scripts\python.exe -m pip install -r requirements.txt</code></pre>
+
+  <h3>FileNotFoundError: '...train.py' or '...\_annotations.coco.json'</h3>
+  <p>Almost always a wrong working directory or wrong file name/location. Checklist:</p>
+  <pre><code># Make sure you're actually in the project folder:
+cd /d D:\your-project-folder
+dir
+
+# Confirm the dataset files exist exactly where data.yaml says:
+dir dataset\train
+dir dataset\valid</code></pre>
+  <p class="muted">Roboflow's COCO export usually names the annotation file exactly <code>_annotations.coco.json</code> (leading underscore). If yours is named differently, edit <code>train_ann</code> / <code>val_ann</code> in <code>data.yaml</code> to match.</p>
+
+  <h3>argparse error: "the following arguments are required: --weights, --images"</h3>
+  <p>This happens when running a script (like <code>detect_weeds.py</code>) via VS Code's Run/Debug button with no arguments configured. Either run it from the terminal with the flags directly, or add an <code>"args"</code> list to <code>.vscode/launch.json</code>.</p>
+
+  <h2 id="training">4. Training</h2>
+
+  <div class="step">
+    <div class="step-title"><span class="num">1</span>Quick smoke test</div>
+    <pre><code>venv\Scripts\python.exe train.py --config data.yaml --epochs 1</code></pre>
+    <p class="muted">Confirms the dataset loads and one full train+val loop runs before committing to a long training session.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-title"><span class="num">2</span>Full training run</div>
+    <pre><code>venv\Scripts\python.exe train.py --config data.yaml</code></pre>
+    <p class="muted">Trains for the epoch count in <code>data.yaml</code> (default 50). Writes <code>checkpoints\best.pth</code> (best val loss), <code>checkpoints\last.pth</code>, <code>checkpoints\resume_state.pth</code>, and <code>logs\metrics.json</code>.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-title"><span class="num">3</span>Resume if interrupted</div>
+    <pre><code>venv\Scripts\python.exe train.py --config data.yaml --resume checkpoints\resume_state.pth</code></pre>
+  </div>
+
+  <div class="warn">
+    <strong>Watch for overfitting on small datasets.</strong> If <code>val_loss</code> stops improving (or starts rising) while <code>train_loss</code> keeps dropping, the model is memorizing the training images rather than generalizing. This is expected with very few training images — always use <code>checkpoints\best.pth</code> (lowest val loss), not <code>last.pth</code>.
+  </div>
+
+  <h2 id="evaluation">5. Evaluation</h2>
+
+  <div class="step">
+    <div class="step-title"><span class="num">1</span>Plot training curves</div>
+    <pre><code>venv\Scripts\python.exe plot_training_curves.py --log logs\metrics.json --out results\training_curves.png</code></pre>
+  </div>
+
+  <div class="step">
+    <div class="step-title"><span class="num">2</span>Run detection on the test set</div>
+    <pre><code>venv\Scripts\python.exe detect_weeds.py --weights checkpoints\best.pth --images dataset\test --export_coco</code></pre>
+    <p class="muted">Saves annotated images (boxes + masks + labels) to <code>results\inference_samples\</code>, plus <code>predictions.json</code> for scoring.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-title"><span class="num">3</span>Compute mAP</div>
+    <pre><code>venv\Scripts\python.exe compute_map.py --gt dataset\test\_annotations.coco.json --pred results\inference_samples\predictions.json</code></pre>
+  </div>
+
+  <div class="step">
+    <div class="step-title"><span class="num">4</span>Error analysis</div>
+    <pre><code>venv\Scripts\python.exe error_analysis.py --gt dataset\test\_annotations.coco.json --pred results\inference_samples\predictions.json --images dataset\test</code></pre>
+    <p class="muted">Produces a confusion matrix, an IoU histogram, a score histogram, and saved crops of the worst false positives/negatives.</p>
+  </div>
+
+  <h2 id="auto">6. Automatic detection (no commands needed)</h2>
+  <p>For a "drop an image in, get a result out" workflow instead of running commands each time:</p>
+  <div class="step">
+    <div class="step-title"><span class="num">1</span>Start the watcher once</div>
+    Double-click <code>run_auto_detect.bat</code> (or run <code>venv\Scripts\python.exe auto_detect.py</code>). It loads the model once and then waits.
+  </div>
+  <div class="step">
+    <div class="step-title"><span class="num">2</span>Drop images into the watch folder</div>
+    Copy any <code>.jpg</code>/<code>.png</code> into the folder set by <code>WATCH_FOLDER</code> in <code>auto_detect.py</code> (default <code>dataset/test</code>). Within a few seconds it's detected automatically and printed to the console.
+  </div>
+  <div class="step">
+    <div class="step-title"><span class="num">3</span>Check the results</div>
+    Annotated copies appear automatically in <code>results\auto_detect\</code>. Leave the window running to keep detecting new images as they arrive; close it or press <code>Ctrl+C</code> to stop.
+  </div>
+
+  <footer>
+    Generated for your weed/crop Mask R-CNN project. Edit and re-download as your setup evolves.
+  </footer>
+
+</div>
+</body>
+</html>
