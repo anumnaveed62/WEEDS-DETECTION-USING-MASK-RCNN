@@ -1,0 +1,28 @@
+# ============================================================
+# Config for train.py
+# Keys here must match train.py's argparse argument names exactly
+# (that's what its load_config()/override logic expects - it's a
+# flat file, not the nested data.yaml used by train_maskrcnn.py).
+# ============================================================
+
+# Roboflow "Crops&Weeds 3 - v3" COCO Segmentation export layout:
+#   data/train/_annotations.coco.json (+ images)
+#   data/valid/_annotations.coco.json (+ images)
+#   data/test/_annotations.coco.json  (+ images)
+train_images: data/train
+train_ann: data/train/_annotations.coco.json
+val_images: data/valid
+val_ann: data/valid/_annotations.coco.json
+
+epochs: 50
+batch_size: 2          # small on purpose - only 40 images total in the dataset
+lr: 0.005
+momentum: 0.9
+weight_decay: 0.0005
+lr_step_size: 15
+lr_gamma: 0.1
+num_workers: 2
+
+checkpoint_dir: checkpoints
+log_path: logs/metrics.json
+seed: 42
